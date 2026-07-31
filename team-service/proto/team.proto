@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package team;
+
+service TeamService {
+  // rpcs added in Phase 1
+}

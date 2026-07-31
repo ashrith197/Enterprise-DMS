@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package branch;
+
+service BranchService {
+  // rpcs added in Phase 1
+}
