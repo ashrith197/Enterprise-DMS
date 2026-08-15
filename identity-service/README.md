@@ -1,98 +1,186 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Identity Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Identity Service for Enterprise DMS - handles authentication, user management, and invitations.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Prerequisites
 
-## Description
+- Node.js 18+
+- PostgreSQL 14+
+- RabbitMQ (for email queue)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Setup
 
-## Project setup
-
+1. Install dependencies:
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
-
+2. Create the database:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+createdb identity_db
 ```
 
-## Run tests
-
+3. Copy `.env.example` to `.env` and configure:
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+4. Run migrations:
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run migration:run
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Development
 
-## Resources
+Start the service in development mode:
+```bash
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+The service will be available at `http://localhost:3001`
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Testing Phase 1 Part 1
 
-## Support
+### 1. Run the migration
+```bash
+npm run migration:run
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 2. Start the service
+```bash
+npm run start:dev
+```
 
-## Stay in touch
+Confirm it's listening on port 3001.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 3. Seed a test invitation
+```bash
+node scripts/seed-test-invitation.js
+```
 
-## License
+This creates an invitation with token: `test-invitation-token-12345` and email: `testuser@example.com`
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### 4. Test the full authentication flow
+
+**Step 1: Activate account**
+```bash
+curl -X POST http://localhost:3001/auth/activate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "test-invitation-token-12345",
+    "password": "Password123"
+  }'
+```
+
+**Step 2: Login**
+```bash
+curl -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "testuser@example.com",
+    "password": "Password123"
+  }'
+```
+Save the `accessToken` and `refreshToken` from the response.
+
+**Step 3: Get user profile**
+```bash
+curl http://localhost:3001/users/me \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**Step 4: Refresh token**
+```bash
+curl -X POST http://localhost:3001/auth/refresh-token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "YOUR_REFRESH_TOKEN"
+  }'
+```
+
+**Step 5: Logout**
+```bash
+curl -X POST http://localhost:3001/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "YOUR_REFRESH_TOKEN"
+  }'
+```
+
+**Step 6: Forgot password**
+```bash
+curl -X POST http://localhost:3001/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "testuser@example.com"
+  }'
+```
+Check console for the password reset email (or Mailhog if SMTP is configured).
+
+**Step 7: Reset password**
+```bash
+curl -X POST http://localhost:3001/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "TOKEN_FROM_EMAIL",
+    "newPassword": "NewPassword456"
+  }'
+```
+
+**Step 8: Login with new password**
+```bash
+curl -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "testuser@example.com",
+    "password": "NewPassword456"
+  }'
+```
+
+### 5. Cleanup
+Delete the seed script after testing:
+```bash
+rm scripts/seed-test-invitation.js
+```
+
+## Available Endpoints
+
+### Authentication (`/auth`)
+- `POST /auth/login` - Login with email and password
+- `POST /auth/refresh-token` - Refresh access token
+- `POST /auth/logout` - Logout and revoke refresh token
+- `POST /auth/activate` - Activate account with invitation token
+- `POST /auth/forgot-password` - Request password reset
+- `POST /auth/reset-password` - Reset password with token
+
+### Users (`/users`)
+- `GET /users/me` - Get current user profile (requires auth)
+- `GET /users/:userId` - Get user by ID (requires auth)
+- `PATCH /users/:userId` - Update user profile (requires auth)
+- `PATCH /users/:userId/status` - Update user status (requires auth)
+
+## Email Configuration
+
+The service uses RabbitMQ for email queuing. If `SMTP_HOST` is not configured, emails will be logged to the console with full content and links.
+
+To use real SMTP (e.g., Mailhog for local testing):
+1. Uncomment SMTP variables in `.env`
+2. Set `SMTP_HOST=localhost` and `SMTP_PORT=1025`
+3. Restart the service
+
+## Migration Commands
+
+Generate a new migration:
+```bash
+npm run migration:generate src/migrations/MigrationName
+```
+
+Run migrations:
+```bash
+npm run migration:run
+```
+
+Revert last migration:
+```bash
+npm run migration:revert
+```
