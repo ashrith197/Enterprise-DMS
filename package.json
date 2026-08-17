@@ -1,0 +1,13 @@
+{
+  "name": "document-management-system",
+  "version": "1.0.0",
+  "description": "Enterprise Document Management System",
+  "private": true,
+  "scripts": {
+    "sync-protos": "node scripts/sync-protos.js"
+  },
+  "devDependencies": {
+    "axios": "^1.6.0",
+    "form-data": "^4.0.0"
+  }
+}

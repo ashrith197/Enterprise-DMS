@@ -1,8 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
 import { HttpExceptionFilter } from './common/http-exception.filter';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -22,6 +24,20 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Set up gRPC microservice
+  const grpcPort = process.env.GRPC_PORT || 5001;
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.GRPC,
+    options: {
+      package: 'identity',
+      protoPath: join(__dirname, '../proto/identity.proto'),
+      url: `0.0.0.0:${grpcPort}`,
+    },
+  });
+
+  await app.startAllMicroservices();
+  logger.log(`🔌 gRPC server running on port ${grpcPort}`, 'Bootstrap');
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

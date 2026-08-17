@@ -1,0 +1,3 @@
+email,role,branchId
+test1@example.com,EMPLOYEE,
+test2@example.com,BRANCH_ADMIN,

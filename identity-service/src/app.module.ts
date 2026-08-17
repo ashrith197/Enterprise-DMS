@@ -7,6 +7,8 @@ import { LoggerModule } from './common/logger.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
+import { InvitationsModule } from './invitations/invitations.module';
+import { GrpcModule } from './grpc/grpc.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { EmailModule } from './email/email.module';
     AuthModule,
     UsersModule,
     EmailModule,
+    InvitationsModule,
+    GrpcModule,
   ],
   controllers: [AppController],
   providers: [AppService],

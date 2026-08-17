@@ -105,4 +105,28 @@ export class UsersService {
       status: user.status,
     };
   }
+
+  // gRPC methods
+  async findOneById(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async findByIds(userIds: string[]): Promise<User[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    return this.userRepository
+      .createQueryBuilder('user')
+      .whereInIds(userIds)
+      .getMany();
+  }
 }
