@@ -27,12 +27,21 @@ async function bootstrap() {
 
   // Set up gRPC microservice
   const grpcPort = process.env.GRPC_PORT || 5001;
-  app.connectMicroservice<MicroserviceOptions>({
+    app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       package: 'identity',
       protoPath: join(__dirname, '../proto/identity.proto'),
       url: `0.0.0.0:${grpcPort}`,
+
+      // IMPORTANT
+      loader: {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true,
+      },
     },
   });
 

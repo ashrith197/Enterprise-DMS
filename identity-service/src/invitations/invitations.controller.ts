@@ -26,7 +26,7 @@ export class InvitationsController {
     @Body() createInvitationDto: CreateInvitationDto,
     @Request() req,
   ) {
-    return this.invitationsService.create(createInvitationDto, req.user.sub);
+    return this.invitationsService.create(createInvitationDto, req.user.id);
   }
 
   @Post('bulk')
@@ -48,7 +48,7 @@ export class InvitationsController {
     return this.invitationsService.bulkCreate(
       file,
       organizationId,
-      req.user.sub,
+      req.user.id,
     );
   }
 

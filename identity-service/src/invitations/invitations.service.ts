@@ -44,7 +44,6 @@ export class InvitationsService {
     const token = this.generateSecureToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
     const invitation = this.invitationsRepository.create({
       organization_id: createInvitationDto.organizationId,
       email: createInvitationDto.email,
@@ -58,7 +57,6 @@ export class InvitationsService {
     });
 
     const savedInvitation = await this.invitationsRepository.save(invitation);
-
     // Publish email job
     await this.emailService.publishEmailJob({
       type: 'INVITATION',

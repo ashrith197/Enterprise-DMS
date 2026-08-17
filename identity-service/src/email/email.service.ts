@@ -43,25 +43,44 @@ export class EmailService implements OnModuleInit {
     }
   }
 
-  private async setupEmailTransporter() {
-    const smtpHost = this.configService.get<string>('SMTP_HOST');
+private async setupEmailTransporter() {
+  const smtpHost = this.configService.get<string>('SMTP_HOST');
+  const smtpPort = Number(
+    this.configService.get<string>('SMTP_PORT') || '587',
+  );
+  const smtpUser = this.configService.get<string>('SMTP_USER');
+  const smtpPass = this.configService.get<string>('SMTP_PASS');
+  const emailFrom = this.configService.get<string>('EMAIL_FROM');
 
-    if (smtpHost) {
-      this.transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: this.configService.get<number>('SMTP_PORT') || 1025,
-        auth: {
-          user: this.configService.get<string>('SMTP_USER'),
-          pass: this.configService.get<string>('SMTP_PASS'),
-        },
-      });
-      this.logger.log('Email transporter configured with SMTP');
-    } else {
-      this.logger.warn(
-        'SMTP_HOST not configured. Emails will be logged to console.',
-      );
-    }
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    this.logger.warn(
+      'SMTP configuration incomplete. Emails will be logged to console.',
+    );
+    return;
   }
+
+  this.transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  this.logger.log(
+    `Email transporter configured: ${smtpHost}:${smtpPort} (${smtpUser})`,
+  );
+
+  try {
+    await this.transporter.verify();
+    this.logger.log('SMTP connection verified successfully');
+  } catch (error) {
+    this.logger.error('SMTP connection verification failed', error);
+    throw error;
+  }
+}
 
   async publishEmailJob(job: EmailJob): Promise<void> {
     try {
