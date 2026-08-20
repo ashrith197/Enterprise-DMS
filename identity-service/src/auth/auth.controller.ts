@@ -8,11 +8,18 @@ import {
   ActivateDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  RegisterOrganizationDto,
 } from './dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('register-organization')
+  @HttpCode(HttpStatus.CREATED)
+  async registerOrganization(@Body() registerDto: RegisterOrganizationDto) {
+    return this.authService.registerOrganization(registerDto);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

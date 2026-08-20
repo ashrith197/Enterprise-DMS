@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Invitation } from '../entities/invitation.entity';
+import { User } from '../entities/user.entity';
 import { InvitationStatus } from '../entities/invitation-status.enum';
 import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -34,6 +35,8 @@ export class InvitationsService {
   constructor(
     @InjectRepository(Invitation)
     private invitationsRepository: Repository<Invitation>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private emailService: EmailService,
   ) {}
 
@@ -41,6 +44,31 @@ export class InvitationsService {
     createInvitationDto: CreateInvitationDto,
     createdBy: string,
   ): Promise<Omit<Invitation, 'token'>> {
+    // Check if a User with this email already exists
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createInvitationDto.email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException(
+        'A user with this email already exists and is already a member of an organization',
+      );
+    }
+
+    // Check if there's already a PENDING invitation for this email (regardless of organization)
+    const pendingInvitation = await this.invitationsRepository.findOne({
+      where: {
+        email: createInvitationDto.email,
+        status: InvitationStatus.PENDING,
+      },
+    });
+
+    if (pendingInvitation) {
+      throw new BadRequestException(
+        'A pending invitation already exists for this email address',
+      );
+    }
+
     const token = this.generateSecureToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now

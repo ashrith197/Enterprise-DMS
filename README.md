@@ -1,4 +1,4 @@
-# Document Management System - Phase 0
+# Document Management System
 
 A microservices-based Document Management System built with NestJS, gRPC, PostgreSQL, and Next.js.
 
@@ -129,6 +129,34 @@ npm run dev
 ```
 
 Frontend will be available at: http://localhost:3009
+
+## Syncing Your Local Database After Pulling Changes
+
+**IMPORTANT**: This project is developed by a team across multiple machines. Database schema changes are managed through TypeORM migrations checked into git.
+
+After running `git pull`, if changes affect one or more services, follow these steps for each affected service:
+
+1. Navigate to the service directory:
+   ```bash
+   cd <service-name>
+   ```
+
+2. Install/update dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run pending migrations:
+   ```bash
+   npm run migration:run
+   ```
+
+**Services with migrations**:
+- `identity-service` - manages identity_db schema
+- `organization-service` - manages organization_db schema
+- Additional services will be added in future phases
+
+If you skip running migrations, you will see database errors when starting the service. Migrations must be run in order for the service to work correctly.
 
 ## Architecture Notes
 

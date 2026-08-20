@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
@@ -20,12 +21,14 @@ import {
   InvitationStatus,
 } from '../entities';
 import { EmailService } from '../email/email.service';
+import { OrganizationClientService } from '../common/organization-client.service';
 import {
   LoginDto,
   RefreshTokenDto,
   ActivateDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  RegisterOrganizationDto,
 } from './dto';
 
 @Injectable()
@@ -42,7 +45,67 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private organizationClient: OrganizationClientService,
   ) {}
+
+  async registerOrganization(dto: RegisterOrganizationDto) {
+    // Validate email isn't already taken
+    const existingUser = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email is already registered');
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    // Create user with ACTIVE status (no invitation/activation step for owner registration)
+    const user = this.userRepository.create({
+      email: dto.email,
+      password_hash: passwordHash,
+      first_name: dto.firstName,
+      last_name: dto.lastName,
+      status: UserStatus.ACTIVE,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    // Call organization-service to create organization
+    try {
+      const orgResponse = await this.organizationClient.createOrganizationForOwner(
+        savedUser.id,
+        dto.organizationName,
+        dto.organizationAddress,
+      );
+
+      // Success - issue tokens immediately
+      const accessToken = this.generateAccessToken(savedUser);
+      const refreshToken = await this.generateRefreshToken(savedUser);
+
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          id: savedUser.id,
+          email: savedUser.email,
+          first_name: savedUser.first_name,
+          last_name: savedUser.last_name,
+        },
+        organizationId: orgResponse.organization_id,
+        memberId: orgResponse.member_id,
+      };
+    } catch (error) {
+      // Compensating rollback - delete the user we just created
+      // This is a best-effort compensating action, not a guaranteed distributed transaction
+      await this.userRepository.remove(savedUser);
+      
+      throw new InternalServerErrorException(
+        `Failed to create organization: ${error.message}. User account was not created.`,
+      );
+    }
+  }
 
   async login(loginDto: LoginDto) {
     const user = await this.userRepository.findOne({
@@ -194,7 +257,7 @@ export class AuthService {
       throw new BadRequestException('User already exists with this email');
     }
 
-    // Create the user
+    // Create the user with ACTIVE status
     const passwordHash = await bcrypt.hash(activateDto.password, 10);
 
     const user = this.userRepository.create({
@@ -205,20 +268,47 @@ export class AuthService {
       status: UserStatus.ACTIVE,
     });
 
-    await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
 
-    // Update invitation
-    invitation.status = InvitationStatus.ACCEPTED;
-    invitation.accepted_at = new Date();
-    await this.invitationRepository.save(invitation);
+    // Call organization-service to create membership
+    try {
+      const memberResponse = await this.organizationClient.createMemberFromInvitation(
+        savedUser.id,
+        invitation.organization_id,
+        invitation.role,
+        invitation.branch_id || undefined,
+      );
 
-    return {
-      message: 'Account activated successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-    };
+      if (!memberResponse.success) {
+        // Compensating rollback - delete the user we just created
+        await this.userRepository.remove(savedUser);
+        
+        throw new InternalServerErrorException(
+          `Failed to create organization membership: ${memberResponse.error_message}. Account was not created.`,
+        );
+      }
+
+      // Success - update invitation status
+      invitation.status = InvitationStatus.ACCEPTED;
+      invitation.accepted_at = new Date();
+      await this.invitationRepository.save(invitation);
+
+      return {
+        message: 'Account activated successfully',
+        user: {
+          id: savedUser.id,
+          email: savedUser.email,
+        },
+        memberId: memberResponse.member_id,
+      };
+    } catch (error) {
+      // Compensating rollback - delete the user and don't mark invitation as accepted
+      await this.userRepository.remove(savedUser);
+      
+      throw new InternalServerErrorException(
+        `Failed to activate account: ${error.message}. Please try again or contact support.`,
+      );
+    }
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {

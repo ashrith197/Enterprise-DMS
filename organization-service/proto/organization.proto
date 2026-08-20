@@ -3,5 +3,63 @@ syntax = "proto3";
 package organization;
 
 service OrganizationService {
-  // rpcs added in Phase 1
+  rpc GetOrganization (GetOrganizationRequest) returns (OrganizationResponse);
+  rpc GetMember (GetMemberRequest) returns (MemberResponse);
+  rpc IsMemberActive (IsMemberActiveRequest) returns (IsMemberActiveResponse);
+  rpc CreateOrganizationForOwner (CreateOrganizationForOwnerRequest) returns (CreateOrganizationForOwnerResponse);
+  rpc CreateMemberFromInvitation (CreateMemberFromInvitationRequest) returns (CreateMemberFromInvitationResponse);
+}
+
+message GetOrganizationRequest {
+  string organization_id = 1;
+}
+
+message OrganizationResponse {
+  string id = 1;
+  string name = 2;
+  string owner_member_id = 3;
+}
+
+message GetMemberRequest {
+  string member_id = 1;
+}
+
+message MemberResponse {
+  string id = 1;
+  string organization_id = 2;
+  string user_id = 3;
+  string system_role = 4;
+  string status = 5;
+}
+
+message IsMemberActiveRequest {
+  string member_id = 1;
+}
+
+message IsMemberActiveResponse {
+  bool active = 1;
+}
+
+message CreateOrganizationForOwnerRequest {
+  string owner_user_id = 1;
+  string organization_name = 2;
+  string organization_address = 3;
+}
+
+message CreateOrganizationForOwnerResponse {
+  string organization_id = 1;
+  string member_id = 2;
+}
+
+message CreateMemberFromInvitationRequest {
+  string user_id = 1;
+  string organization_id = 2;
+  string role = 3;
+  string branch_id = 4;
+}
+
+message CreateMemberFromInvitationResponse {
+  string member_id = 1;
+  bool success = 2;
+  string error_message = 3;
 }
